@@ -24,7 +24,7 @@ type QuestionsArray = z.infer<typeof QuestionsArraySchema>;
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { count } = body;
+    const { count, userMessage } = body;
 
     if (!count || typeof count !== "number" || count < 1 || count > 20) {
       return NextResponse.json(
@@ -78,9 +78,13 @@ Return ONLY a valid JSON object with this exact structure (no markdown, no code 
   ]
 }`;
 
+    const userPrompt = userMessage
+      ? `Generate ${count} questions with the following requirements: ${userMessage}`
+      : `Generate ${count} questions`;
+
     const result = await model.invoke([
       { role: "system", content: systemPrompt },
-      { role: "user", content: `Generate ${count} questions` },
+      { role: "user", content: userPrompt },
     ]);
 
     // Extract JSON from response

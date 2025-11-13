@@ -18,6 +18,7 @@ interface Question {
 export default function QuestionGenerator() {
   const router = useRouter();
   const [count, setCount] = useState<number>(6);
+  const [userMessage, setUserMessage] = useState<string>("");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingProgress, setLoadingProgress] = useState<string>("");
@@ -43,7 +44,7 @@ export default function QuestionGenerator() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ count }),
+        body: JSON.stringify({ count, userMessage: userMessage.trim() || undefined }),
       });
 
       clearTimeout(progressTimer);
@@ -138,8 +139,8 @@ export default function QuestionGenerator() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-4">Question Generator</h1>
 
-        <div className="flex gap-4 items-end">
-          <div className="flex-1">
+        <div className="space-y-4">
+          <div>
             <label htmlFor="count" className="block text-sm font-medium mb-2">
               How many questions do you want to generate?
             </label>
@@ -155,12 +156,27 @@ export default function QuestionGenerator() {
             />
           </div>
 
+          <div>
+            <label htmlFor="userMessage" className="block text-sm font-medium mb-2">
+              Custom requirements (optional)
+            </label>
+            <textarea
+              id="userMessage"
+              value={userMessage}
+              onChange={(e) => setUserMessage(e.target.value)}
+              placeholder="e.g., focus on 1990s pop culture, include sports questions, make them about science..."
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              rows={3}
+              disabled={loading}
+            />
+          </div>
+
           <button
             onClick={generateQuestions}
             disabled={loading}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+            className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
           >
-            {loading ? "Generating..." : "Generate"}
+            {loading ? "Generating..." : "Generate Questions"}
           </button>
         </div>
 
