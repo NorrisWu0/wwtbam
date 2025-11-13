@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 interface QuestionOption {
@@ -23,10 +23,12 @@ interface Quiz {
 
 export default function QuizPage() {
   const params = useParams();
+  const router = useRouter();
   const quizId = params.id as string;
 
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
+  const [starting, setStarting] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -49,6 +51,34 @@ export default function QuizPage() {
 
     fetchQuiz();
   }, [quizId]);
+
+  const startSession = async () => {
+    setStarting(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ quizId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to start session");
+      }
+
+      const data = await response.json();
+
+      // Navigate to session page
+      router.push(`/session/${data.sessionId}?quiz_id=${quizId}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error occurred");
+      setStarting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -94,10 +124,26 @@ export default function QuizPage() {
             </div>
           </div>
 
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-700">
-              Share this quiz ID with players to start the game!
-            </p>
+          <div className="space-y-4">
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-700">
+                Ready to start? Click the button below to begin the quiz session!
+              </p>
+            </div>
+
+            <button
+              onClick={startSession}
+              disabled={starting}
+              className="w-full px-8 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-bold text-xl shadow-lg"
+            >
+              {starting ? "Starting..." : "Start Quiz"}
+            </button>
+
+            {error && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+                {error}
+              </div>
+            )}
           </div>
         </div>
 
