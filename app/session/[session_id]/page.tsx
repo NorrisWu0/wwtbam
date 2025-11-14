@@ -2,6 +2,9 @@
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import ParticipantManager from "@/app/components/ParticipantManager";
+import Scoreboard from "@/app/components/Scoreboard";
+import type { Participant } from "@/app/lib/session-store";
 
 interface QuestionOption {
   label: string;
@@ -33,6 +36,8 @@ export default function SessionPage() {
   const [revealed, setRevealed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [quizStarted, setQuizStarted] = useState(false);
+  const [participants, setParticipants] = useState<Participant[]>([]);
 
   useEffect(() => {
     const fetchQuiz = async () => {
@@ -60,6 +65,25 @@ export default function SessionPage() {
 
     fetchQuiz();
   }, [quizId]);
+
+  // Fetch session participants when quiz starts
+  useEffect(() => {
+    if (!quizStarted) return;
+
+    const fetchSession = async () => {
+      try {
+        const response = await fetch(`/api/session/${sessionId}`);
+        if (response.ok) {
+          const session = await response.json();
+          setParticipants(session.participants || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch session:", err);
+      }
+    };
+
+    fetchSession();
+  }, [quizStarted, sessionId]);
 
   const handleReveal = () => {
     setRevealed(true);
@@ -103,23 +127,36 @@ export default function SessionPage() {
     );
   }
 
+  // Show participant manager before quiz starts
+  if (!quizStarted) {
+    return (
+      <ParticipantManager
+        sessionId={sessionId}
+        onQuizStart={() => setQuizStarted(true)}
+      />
+    );
+  }
+
   const currentQuestion = quiz.questions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === quiz.questions.length - 1;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 py-12">
-      <div className="w-full max-w-4xl mx-auto p-6">
-        {/* Session Header */}
-        <div className="mb-8 text-center">
-          <p className="text-sm text-gray-500 mb-2">
-            Session: <span className="font-mono font-bold">{sessionId}</span>
-          </p>
-          <p className="text-lg font-semibold text-purple-700">
-            Question {currentQuestionIndex + 1} of {quiz.questions.length}
-          </p>
-        </div>
+      <div className="w-full max-w-7xl mx-auto p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Content - Question */}
+          <div className="lg:col-span-2">
+            {/* Session Header */}
+            <div className="mb-8 text-center">
+              <p className="text-sm text-gray-500 mb-2">
+                Session: <span className="font-mono font-bold">{sessionId}</span>
+              </p>
+              <p className="text-lg font-semibold text-purple-700">
+                Question {currentQuestionIndex + 1} of {quiz.questions.length}
+              </p>
+            </div>
 
-        {/* Question Card */}
+            {/* Question Card */}
         <div className="bg-white rounded-2xl shadow-2xl p-8 mb-6">
           {/* Question Type */}
           <div className="mb-4">
@@ -194,15 +231,22 @@ export default function SessionPage() {
           </div>
         </div>
 
-        {/* Progress Indicator */}
-        <div className="mt-4">
-          <div className="w-full bg-gray-200 rounded-full h-3">
-            <div
-              className="bg-purple-600 h-3 rounded-full transition-all duration-300"
-              style={{
-                width: `${((currentQuestionIndex + 1) / quiz.questions.length) * 100}%`,
-              }}
-            ></div>
+            {/* Progress Indicator */}
+            <div className="mt-4">
+              <div className="w-full bg-gray-200 rounded-full h-3">
+                <div
+                  className="bg-purple-600 h-3 rounded-full transition-all duration-300"
+                  style={{
+                    width: `${((currentQuestionIndex + 1) / quiz.questions.length) * 100}%`,
+                  }}
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar - Scoreboard */}
+          <div className="lg:col-span-1">
+            <Scoreboard participants={participants} />
           </div>
         </div>
       </div>
